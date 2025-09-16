@@ -2,7 +2,5 @@ HTTP/1.1 405 Method Not Allowed
 Server: A gameboy :3
 Allow: GET
 Content-Type: text/html; charset=utf-8
-Content-Length: 82
 
-<h1>405 Method Not Allowed</h1>
-<p>I only implemented the GET method sowwy :3</p>
+<h1>405 Method Not Allowed</h1><p>I only implemented the GET method sowwy :3</p>          
