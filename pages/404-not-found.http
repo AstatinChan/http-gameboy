@@ -1,0 +1,6 @@
+HTTP/1.1 404 Not Found
+Server: A gameboy :3
+Content-Type: text/html; charset=utf-8
+
+<h1>404 Not Found</h1>
+<p>Oh nyo, you are lost ! You can go back to the index <a href="/">here</a></p>

@@ -1,0 +1,6 @@
+HTTP/1.1 400 Bad Request
+Server: A gameboy :3
+Content-Type: text/html; charset=utf-8
+
+<h1>400 Bad Request</h1>
+<p>Bonk</p>

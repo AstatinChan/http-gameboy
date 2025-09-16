@@ -1,0 +1,349 @@
+.DEFINE request_buffer $c000
+.DEFINE line_ptrs $d000
+.DEFINE path $dffc
+.DEFINE request_flags ($dffe)
+; bit 0 = 1 if last char was a new line
+
+.PADTO 0x0058
+	JP =Serial_Recv
+
+.PADTO 0x0100
+Entry:
+	JP =Start
+
+.PADTO 0x0104
+Nintendo_Logo: ; The Nintendo logo must be stored in bytes 0x104-133
+	.DB $CE,$ED,$66,$66,$CC,$0D,$00,$0B,$03,$73,$00,$83,$00,$0C,$00,$0D
+	.DB $00,$08,$11,$1F,$88,$89,$00,$0E,$DC,$CC,$6E,$E6,$DD,$DD,$D9,$99
+	.DB $BB,$BB,$67,$63,$6E,$0E,$EC,$CC,$DD,$DC,$99,$9F,$BB,$B9,$33,$3E
+
+.PADTO 0x0134
+Checksum: ; The bytes 0x134-0x14d need to add up to 0xe7 (= 0xff - 0x19)
+	.DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	.DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$e7
+
+Start:
+	LD SP, $fffe
+
+	LD A, $00
+	LD ($40), A
+
+	LD A, $01
+	LD $request_flags, A
+
+	LD A, $08
+	LD ($ff), A
+
+	LD HL, $request_buffer
+	LD DE, $line_ptrs
+	EI
+
+	Lock:
+		HALT
+		EI
+		JR =Lock
+
+Serial_Recv:
+	LD A, ($01)
+	CP $0d
+	JR Z, =.next
+	CP $0a
+	JP Z, =New_Line
+	LD (HL+), A
+	LD A, $request_flags
+	BIT 0, A
+	RES 0, A
+	LD $request_flags, A
+	JR Z, =.next
+	DEC HL
+	LD A, H
+	LD (DE), A
+	INC DE
+	LD A, L
+	LD (DE), A
+	INC DE
+	INC HL
+
+	.next:
+	RETI
+
+New_Line:
+	LD A, $request_flags
+	BIT 0, A
+	JP NZ, =Processing
+	SET 0, A
+	LD $request_flags, A
+	LD (HL), $00
+	INC HL
+	RETI
+
+Processing:
+	LD A, $00
+	LD (DE), A
+	INC DE
+	LD (DE), A
+
+	LD DE, =GET_Method
+	LD HL, $request_buffer
+	CALL =Start_With
+	CP $01
+	JR NZ, =Method_Not_Allowed
+
+	LD A, (HL+)
+	CP $20
+	JR NZ, =Bad_Request
+
+	LD A, H
+	LD ($path), A
+	LD A, L
+	LD ($path+1), A
+
+	LD DE, =PATH_index
+	CALL =CMP_Path
+	JR Z, =Index
+
+	LD DE, =PATH_why
+	CALL =CMP_Path
+	JR Z, =Why
+
+Not_Found:
+	LD HL, =HTTP_Response_Error_404
+	CALL =Print
+	STOP
+
+Bad_Request:
+	LD HL, =HTTP_Response_Error_400
+	CALL =Print
+	STOP
+
+Method_Not_Allowed:
+	LD HL, =HTTP_Response_Error_405
+	CALL =Print
+	STOP
+
+Index:
+	LD DE, =Accept_Language_Header
+	CALL =Find_Header
+
+	PUSH HL
+	LD DE, =Language_French
+	CALL =Index_of
+	LD B, H
+	LD C, L
+	POP HL
+
+	PUSH BC
+	LD DE, =Language_English
+	CALL =Index_of
+	POP BC
+
+	CALL =CP_16b
+	JR C, =.french
+
+	LD HL, =HTTP_Response_Index
+	CALL =Print
+	STOP
+
+	.french:
+	LD HL, =HTTP_Response_Index_FR
+	CALL =Print
+	STOP
+
+Why:
+	LD DE, =Accept_Language_Header
+	CALL =Find_Header
+
+	PUSH HL
+	LD DE, =Language_French
+	CALL =Index_of
+	LD B, H
+	LD C, L
+	POP HL
+
+	PUSH BC
+	LD DE, =Language_English
+	CALL =Index_of
+	POP BC
+
+	CALL =CP_16b
+	JR C, =.french
+
+	LD HL, =HTTP_Response_Why
+	CALL =Print
+	STOP
+
+	.french:
+	LD HL, =HTTP_Response_Why_FR
+	CALL =Print
+	STOP
+
+GET_Method:
+.DB $47, $45, $54, $00
+
+PATH_index:
+.DB $2f, $00
+
+PATH_why:
+.DB $2f, $77, $68, $79, $00
+
+Accept_Language_Header:
+.DB $41, $63, $63, $65, $70, $74, $2d, $4c, $61, $6e, $67, $75, $61, $67, $65, $3a, $00
+
+Language_English:
+.DB $65, $6e, $00
+
+Language_French:
+.DB $66, $72, $00
+
+Start_With: ; check if DE string is contained into HL string, put HL to the end of the string
+	PUSH DE
+	.loop:
+	LD A, (DE)
+	CP $00
+	JR Z, =.true
+	CP (HL)
+	JR NZ, =.false
+	INC HL
+	INC DE
+	JR =.loop
+
+	.true:
+	LD A, $01
+	POP DE
+	RET
+
+	.false:
+	LD A, $00
+	POP DE
+	RET
+
+CP_16b: ; BC < HL
+	LD A, B
+	CP H
+	RET NZ
+	LD A, C
+	CP L
+	RET
+
+Find_Header: ; Find the DE Header in HL (or 0 if not found)
+	LD BC, $line_ptrs
+
+	.loop:
+	INC BC
+	INC BC
+
+	LD A, (BC)
+	LD H, A
+	INC BC
+	LD A, (BC)
+	LD L, A
+	LD A, $00
+	CP H
+	RET Z
+
+	CALL =Start_With
+	CP $00
+	JR Z, =.loop
+
+	RET
+
+Index_of: ; Find DE substring inside of string and put HL to the end of that string or the end of HL string if not
+	.new_loop:
+		LD B, D
+		LD C, E
+		.found_loop:
+			LD A, (HL)
+			CP $00
+			RET Z
+
+			LD A, (BC)
+			CP $00
+			RET Z
+
+			CP (HL)
+			INC HL
+			INC BC
+			JR Z, =.found_loop
+		JR =.new_loop
+
+
+CMP_Path: ; Check whether or not the path equals the string in DE and set the Z flag if it is
+	LD A, ($path)
+	LD H, A
+	LD A, ($path+1)
+	LD L, A
+	.loop:
+		LD A, (DE)
+		CP $00
+		JR Z, =.DE_path_end
+		CP (HL)
+		JR NZ, =.false
+		LD A, $20
+		CP (HL)
+		JR Z, =.false
+		INC DE
+		INC HL
+		JR =.loop
+
+	.DE_path_end:
+	LD A, (HL)
+	CP $20
+	JR Z, =.true
+	
+	.false:
+		LD A, $01
+		CP $00
+		RET
+
+	.true:
+		LD A, $00
+		CP $00
+		RET
+
+Print:
+	.send_loop:
+		LD A, (HL+)
+		CP $00
+		RET Z
+
+		LD ($01), A
+
+		LD A, $81
+
+		LD ($02), A
+
+		.wait_transfer:
+			LD A, ($02)
+			BIT 7, A
+			JR NZ, =.wait_transfer
+		JR =.send_loop
+
+HTTP_Response_Error_405:
+.INCLUDEBIN "pages/405-method-not-allowed.http"
+.DB $00
+
+HTTP_Response_Error_400:
+.INCLUDEBIN "pages/400-bad-request.http"
+.DB $00
+
+HTTP_Response_Error_404:
+.INCLUDEBIN "pages/404-not-found.http"
+.DB $00
+
+HTTP_Response_Index:
+.INCLUDEBIN "pages/index.http"
+.DB $00
+
+HTTP_Response_Why:
+.INCLUDEBIN "pages/why.http"
+.DB $00
+
+HTTP_Response_Index_FR:
+.INCLUDEBIN "pages/index-fr.http"
+.DB $00
+
+HTTP_Response_Why_FR:
+.INCLUDEBIN "pages/why-fr.http"
+.DB $00
+
+.ASSERT bank(.) $00
