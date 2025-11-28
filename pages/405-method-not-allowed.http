@@ -3,4 +3,4 @@ Server: A gameboy :3
 Allow: GET
 Content-Type: text/html; charset=utf-8
 
-<h1>405 Method Not Allowed</h1><p>I only implemented the GET method sowwy :3</p>          
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgo="><h1>405 Method Not Allowed</h1><p>I only implemented the GET method sowwy :3</p>          

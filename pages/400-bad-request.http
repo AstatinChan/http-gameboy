@@ -2,4 +2,4 @@ HTTP/1.1 400 Bad Request
 Server: A gameboy :3
 Content-Type: text/html; charset=utf-8
 
-<h1>400 Bad Request</h1><p>Bonk</p>          
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgo="><h1>400 Bad Request</h1><p>Bonk</p>          
