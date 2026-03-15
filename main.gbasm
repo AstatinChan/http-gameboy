@@ -332,18 +332,22 @@ HTTP_Response_Error_404:
 
 HTTP_Response_Index:
 .INCLUDEBIN "pages/index.http"
+.INCLUDEBIN "pages/footer.html"
 .DB $00
 
 HTTP_Response_Why:
 .INCLUDEBIN "pages/why.http"
+.INCLUDEBIN "pages/footer.html"
 .DB $00
 
 HTTP_Response_Index_FR:
 .INCLUDEBIN "pages/index-fr.http"
+.INCLUDEBIN "pages/footer-fr.html"
 .DB $00
 
 HTTP_Response_Why_FR:
 .INCLUDEBIN "pages/why-fr.http"
+.INCLUDEBIN "pages/footer-fr.html"
 .DB $00
 
 .ASSERT bank(.) $00
