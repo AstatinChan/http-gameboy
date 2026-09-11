@@ -44,6 +44,9 @@ Start:
 		JR =Lock
 
 Serial_Recv:
+	LD A, high($line_ptrs)
+	CP H
+	JR Z, =.overflow
 	LD A, ($01)
 	CP $0d
 	JR Z, =.next
@@ -62,10 +65,16 @@ Serial_Recv:
 	LD A, L
 	LD (DE), A
 	INC DE
+
 	INC HL
 
 	.next:
 	RETI
+
+	.overflow:
+	LD A, $00
+	LD ($d7ff), A
+	JR =Processing
 
 New_Line:
 	LD A, $request_flags
@@ -335,6 +344,8 @@ HTTP_Response_Index:
 .INCLUDEBIN "pages/footer.html"
 .DB $00
 
+; I'm too lazy to keep this page up to date in french so no french version
+HTTP_Response_Why_FR:
 HTTP_Response_Why:
 .INCLUDEBIN "pages/why.http"
 .INCLUDEBIN "pages/footer.html"
@@ -342,11 +353,6 @@ HTTP_Response_Why:
 
 HTTP_Response_Index_FR:
 .INCLUDEBIN "pages/index-fr.http"
-.INCLUDEBIN "pages/footer-fr.html"
-.DB $00
-
-HTTP_Response_Why_FR:
-.INCLUDEBIN "pages/why-fr.http"
 .INCLUDEBIN "pages/footer-fr.html"
 .DB $00
 

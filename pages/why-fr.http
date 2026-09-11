@@ -1,6 +1,0 @@
-HTTP/1.1 200 OK
-Server: A gameboy :3
-Content-Type: text/html; charset=utf-8
-Content-Language: fr-FR
-
-<link rel="icon" href="data:image/png;base64,iVBORw0KGgo="><style>body{text-align:center;font-family:sans-serif;color:#222;width:600px;margin:auto;}</style><h1>Pourquoi est-ce que je fais ça ?</h1><p>Pourquoi pas ? :3</p><p><a href="/">Cliquez ici pour retourner à l'index</a></p><p>Astatine est fière de ses bêtises :3</p>
